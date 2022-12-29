@@ -1,0 +1,713 @@
+<!doctype html>
+<html>	
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="icon" href="./favicon.png">
+		<title>Fotball</title>	
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+	</head>			
+	<body>	
+		<script>
+// -------------------------------------- color variables
+		var main_col = "#ffffff";
+		var title_col = "#bd1349";
+		var subtitle_col = "#ffffff";
+		var white_col = "#ffffff";
+		var light_col = "#B0D5E1";
+		var moderate_col = "#9CB2B9";
+		var dark_col = "#06478B";  
+		var border_col = "#3C4621"; 
+		var back_col = "#7892AB"; 
+		var black_col = "#210612"; 
+		var blue_col = "#4242ff";
+		var button_over_col = "#7892AB";
+// -------------------------------------- main settings
+		// Background
+		d3.select("body")
+			.style("background", back_col) 
+			.attr("height", "700px");  
+		// Margin
+		var margin = { top: 65, right: 50, bottom: 20, left: 50 },
+			width = 1200 - margin.left - margin.right,
+			height = 740 - margin.top - margin.bottom;
+// -------------------------------------- div for svg
+			var div_main = d3.select("body")
+				.append("div")
+				.attr("id", "div_main")
+				//.style("border", "10px solid white")
+				.style("margin","30px auto");
+	// -------------------------------------- svg board
+	var svg = div_main.append('svg')
+				.attr('width', width + margin.left + margin.right)
+				.attr('height', height + margin.top + margin.bottom)
+				.style("display","block")
+				.style("margin","0px auto")
+				.style("border", "2px solid white") 
+				.style("background", moderate_col) 
+				.append('g')
+				.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+	// -------------------------------------- Title & subtitle
+		// Title
+		var story = svg
+			.append('image')
+				.attr('xlink:href', "./Untitled.png")
+				.attr('width', 300)
+				.attr('height', 100)
+				.attr("transform", "translate(-50,-90)");	
+		// Sub-Title
+		svg.append("text")
+		.text("Results over the years")
+			.attr("x", -49)
+			.attr("y",2)
+
+// -------------------------------------- geo data
+	const geoFile = "./world_countries_geojson.geojson"; 
+	const dataFile = "./NEWDATA.csv"; // I got the coordinates at https://simplemaps.com/
+
+	// store global objects here
+	var map = {}; 
+	var dataset = {};
+
+	Promise.all([
+
+		d3.json(geoFile), 
+		d3.csv(dataFile, function(results){
+			return {
+				home_team: results.home_team,
+				away_team: results.away_team,
+				home_score: results.home_score,
+				away_score: results.away_score,
+				tournament: results.tournament,
+				city: results.city,
+				country: results.country,
+				coord: [+results.lng, +results.lat],
+				date: parseTime(results.date)
+			}
+		})
+	])
+	.then(function([shapes, data]){
+		map.features = shapes.features; 	
+		dataset = data;
+
+		// Call the draw function 
+		draw();
+			
+	}); 	
+// -------------------------------------- map 
+	// Projection
+	const projection = d3.geoNaturalEarth1() //d3.geoNaturalEarth1() d3.geoMercator()
+					 .scale(240)
+					 .translate([(width/2)-70, (height/2)+10]); 
+	
+	// Path generator 
+	const geoPath = d3.geoPath()
+				  .projection(projection);
+// -------------------------------------- scales
+	// Circle Scale
+	var circleScale = d3.scaleSqrt()
+			.domain([0,10])
+			.range([0,5]);
+	// Color Scale
+	var colorScale = d3.scaleLinear()
+			.domain([0,800])
+			.range([dark_col, light_col]) ;
+	// Opacity Scale
+	var opacityScale = d3.scaleLinear()
+			.domain([0,600])
+            .range([0.2, 0.9]); 
+	// Area Scale
+	var areaScale = d3.scaleSqrt()
+			.domain([0,800])
+			.range([0.6,7]);      
+// -------------------------------------- time parse, formate
+	// Parse date
+	var parseTime = d3.timeParse("%Y-%m-%d");	
+	// Formate date
+	var formatTime = d3.timeFormat("%e %b %y");
+	var timeScale = d3.scaleTime()
+			.domain([parseTime("28-Nov-1884"), parseTime("17-dec-2022")])
+			.range([0, width-150]);
+
+// --------------------------------- draw function
+	function draw() {     
+		// country path 
+		svg.selectAll("path.country") 
+		.data(map.features)
+		.enter().append("path")
+		.attr("class","country")
+		.attr("d", geoPath)
+		.style("fill", white_col)  
+		.style("stroke", border_col)  
+		.style("stroke-width", "0.4");
+
+		// main circles
+		svg.selectAll("circle.main_circles")
+			.data(dataset)
+			.enter().append("circle")
+			.attr("class", "main_circles")
+			.attr("cx", d => projection(d.coord)[0])
+			.attr("cy", d => projection(d.coord)[1])
+			.attr("r", 3)
+			.style("stroke", dark_col)
+			.style("fill", light_col)
+			.attr("stroke-width",0.6)
+
+		// contour circles
+		svg.selectAll("circle.contour_circles")
+			.data(dataset)
+			.enter().append("circle")
+			.attr("class", "contour_circles")
+			.attr("cx", d => projection(d.coord)[0])
+			.attr("cy", d => projection(d.coord)[1])
+			.attr("r", d => 3)
+			.style("stroke", white_col)
+			.style("fill", white_col)
+			.style("stroke-opacity", 0.085)
+			.attr("stroke-width", 0.2)
+			.style("fill-opacity", 0);
+// Timeline
+// -------------------------------------- axes 
+
+
+
+		// format the domain
+		d3.selectAll("g.axe .domain")
+		.style("stroke", main_col)
+		.style("opacity", 0.2);
+
+		// adjust font size and opacity
+		d3.selectAll("g.axe g.tick text")
+		.style("font-size", "10px")
+		.style("color", main_col)
+
+// -------------------------------------- play function
+
+		// Time variables
+		var in_delay = 20;
+		var tot_delay = 5505 * in_delay;
+		var main_dots_time = 500;
+		var contour_dots_time1 = 600;
+		var contour_dots_time2 = 500;
+		var contour_dots_delay = 3;
+
+		var play = function(d) {
+
+				
+				d3.select(".start_circle")
+				.transition()		
+				.duration(1000)
+				.attr("r", 2)
+				.attr("stroke-width", 1)
+				.style("fill-opacity", 1)
+				.transition()		
+				.duration(1000)
+				.delay(tot_delay+500)
+				.attr("r", 10)
+				.attr("stroke-width", 0.7)
+				.style("fill-opacity", 0);
+
+				// play main circles, map
+				d3.selectAll("circle.main_circles")
+				.attr("r", 0)
+				.transition()
+				.duration(main_dots_time)
+				.delay((d, i) => i * in_delay)
+				.attr("r", 3);
+
+				// // play countour circles, map
+				d3.selectAll("circle.contour_circles")
+				.attr("r", 0)
+				.transition()
+				.duration(main_dots_time)
+				.delay((d, i) => i * in_delay)
+				.style("stroke", "red")
+				.attr("stroke-width", 0.8)
+				.style("stroke-opacity", 0.9)
+				.style("fill-opacity", 0.7)
+				.attr("r", 3 + circleScale(0))
+				.transition()
+				.delay(0)
+				.attr("r", d => 3 + circleScale(5))
+				.style("stroke-opacity", 0.085)
+				.attr("stroke-width", 0.2)
+				.style("fill-opacity", 0);
+
+				// play time circles
+				d3.selectAll("circle.time_circles")
+				.attr("r", d=> Math.random())
+				.attr("cx", d => timeScale(d.date))
+           		.attr("cy", d =>  570 + (d.random * 80))
+				.attr("stroke-width", 1)
+				.style("stroke-opacity", 0)
+				.style("fill-opacity", 0)
+				.transition()
+				.duration(3000)
+				.delay((d, i) => i * in_delay)
+				.attr("r", 3)
+				.attr("stroke-width", 0.4)
+
+		};
+
+// -------------------------------------- play button function
+		
+	// over function
+		var over = function(d) {
+				d3.select(this)
+				.style("fill", main_col)
+				};
+	
+	// move function
+		var move = function(d) {
+				d3.select(this)
+				.style("fill", main_col)
+				};
+
+	// leave function	
+		var leave = function(d) {
+				d3.select(this)
+				.style("fill", white_col)
+				};
+
+// -------------------------------------- play button
+
+		// add g element button
+		var startButton = svg.append("g")
+		.classed("start", true)
+		.attr("transform", "translate(-4,604.5)");
+
+		// start circle
+		startButton.append("circle")
+		.classed("start_circle", true)
+		.attr("cx", 4.5)
+		.attr("cy", 6)
+		.attr("r", 10)
+		.style("stroke", blue_col)
+		.attr("stroke-width", 0.7)
+		.style("fill", white_col)
+		.style("fill-opacity", 0);
+
+		// start button
+		startButton.append("polygon")
+		.classed("start_polygon", true)
+		.attr("points", "0,0 12,6 0,12")
+		.attr("stroke-width", 0.7)
+		.style("fill", white_col)
+		.style("opacity", 1)
+		.attr("transform", "translate(0,0)")
+		.on("mousedown", play)
+		.on("mouseover", over)
+		.on("mouseleave", leave)
+		.on("mousemove", move);
+		
+		// start text
+		startButton.append("text")
+		.classed("start_text", true)
+		.attr("x", 0)
+		.attr("y", 15)
+		.text("Timelapse 1885 - 2022")
+		.attr("transform", "translate(0,-40)");
+
+// -------------------------------------- end circle
+
+		svg.append("circle")
+		.classed("end_circle", true)
+		.attr("cx", timeScale(parseTime("26-Jun-2019")))
+		.attr("cy", 610)
+		.attr("r", 2)
+		.style("stroke", blue_col)
+		.style("fill", white_col);
+
+// -------------------------------------- separation line
+
+	var sepLine = svg.append("line")
+		.classed("sep_line", true)
+		.attr("x1", 960)
+		.attr("y1", -20)
+		.attr("x2", 960)
+		.attr("y2", 660)
+		.style("stroke", dark_col)
+		.style("stroke-width", 0.3)
+		.style("opacity", 0);
+// -------------------------------- Speed Buttons Functions
+
+	// 1x
+	// down functions
+	var speedDownLow = function(d) {
+			d3.select(this)
+				.transition()
+				.duration(1000)
+				.style("fill", button_over_col)
+				.style("stroke", white_col)
+				.style("stroke-width", "2px")
+				.style("stroke-opacity", 0.8);
+				
+				d3.selectAll("circle.medium_button, circle.high_button")
+				.transition()
+				.duration(1000)
+				.style("fill", back_col)
+				.style("stroke", moderate_col)
+				.style("stroke-width", "1px")
+				.style("stroke-opacity", 1);
+
+				in_delay = 20;
+				tot_delay = 5505 * in_delay;
+
+				};
+
+	// 2x
+	// down functions
+	var speedDownMedium = function(d) {
+				d3.select(this)
+				.transition()
+				.duration(1000)
+				.style("fill", button_over_col)
+				.style("stroke", white_col)
+				.style("stroke-width", "2px")
+				.style("stroke-opacity", 0.8);
+
+				d3.selectAll("circle.low_button, circle.high_button")
+				.transition()
+				.duration(1000)
+				.style("fill", back_col)
+				.style("stroke", moderate_col)
+				.style("stroke-width", "1px")
+				.style("stroke-opacity", 1);
+
+				in_delay = 10;
+				tot_delay = 5505 * in_delay;
+
+				};
+
+	// 4x
+	// down functions
+	var speedDownHigh = function(d) {
+				d3.select(this)
+				.transition()
+				.duration(1000)
+				.style("fill", button_over_col)
+				.style("stroke", white_col)
+				.style("stroke-width", "2px")
+				.style("stroke-opacity", 0.8);
+
+				d3.selectAll("circle.low_button, circle.medium_button")
+				.transition()
+				.duration(1000)
+				.style("fill", back_col)
+				.style("stroke", moderate_col)
+				.style("stroke-width", "1px")
+				.style("stroke-opacity", 1);
+
+				in_delay = 5;
+				tot_delay = 5505 * in_delay;
+				};
+
+	// over general function
+	var overGeneral = function(d) {
+				d3.select(this)
+				.transition()
+				.duration(200)
+				.style("fill", dark_col);
+				};
+
+	// leave general function
+	var leaveGeneral = function(d) {
+				d3.select(this)
+				.transition()
+				.duration(200)
+				.style("fill", back_col);
+				};
+
+	// -------------------------------- on/off Projection Functions
+
+	// on Projection
+	// down functions
+	var onProj = function(d) {
+				
+				d3.select(this)
+				.transition()
+				.duration(1000)
+				.style("fill", button_over_col)
+				.style("stroke", white_col)
+				.style("stroke-width", "2px")
+				.style("stroke-opacity", 0.8);
+
+				d3.select("circle.off_proj")
+				.transition()
+				.duration(1000)
+				.style("fill", back_col)
+				.style("stroke", moderate_col)
+				.style("stroke-width", "1px")
+				.style("stroke-opacity", 1);
+
+				proj_stroke = "0.2px";
+				d3.selectAll("line.time_lines")
+				.style("stroke-width", proj_stroke)
+
+				};
+
+	// off Projection
+	// down functions
+	var offProj = function(d) {
+
+				d3.select(this)
+				.transition()
+				.duration(1000)
+				.style("fill", button_over_col)
+				.style("stroke", white_col)
+				.style("stroke-width", "2px")
+				.style("stroke-opacity", 0.8);
+
+				d3.select("circle.on_proj")
+				.transition()
+				.duration(1000)
+				.style("fill", back_col)
+				.style("stroke", moderate_col)
+				.style("stroke-width", "1px")
+				.style("stroke-opacity", 1);
+
+				proj_stroke = "0px";
+
+				d3.selectAll("line.time_lines")
+				.style("stroke-width", proj_stroke)
+				.style("stroke-opacity", d => projOpacScale(d.death));
+
+				};
+					
+
+// -------------------------------------- Controllers & Legend
+
+		// menu
+		var controller = svg.append("g")
+		.classed("controller", true)
+		.attr("transform", "translate(980,190)");
+
+		// speed button
+		var legendTitle = controller.append("g")
+		.attr("transform", "translate(17,-70)");
+
+		// speed text
+		legendTitle.append("text")
+		.attr("x", 0)
+		.attr("y", -30)
+		.html("Controls & Legend")
+		.style("fill", white_col)
+		.style("font-size", "10px")
+		.style("opacity", 0.6)
+		.attr("transform", "translate(-20,3)");
+
+		// -------------------------------------- speed button
+
+		// speed button
+		var speedButton = controller.append("g")
+		.classed("speed_button", true)
+		.attr("transform", "translate(17,-70)");
+
+		// speed text
+		speedButton.append("text")
+		.classed("start_text", true)
+		.attr("x", 0)
+		.attr("y", 0)
+		.text("Timelapse :")
+		.style("fill", main_col)
+		.style("font-size", "8px")
+		.attr("transform", "translate(-20,3)");
+
+		speedButton.append("text")
+		.classed("start_text", true)
+		.attr("x", 62)
+		.attr("y", 0)
+		.text("1X")
+		.style("fill", main_col)
+		.style("font-size", "8px")
+		.attr("transform", "translate(-20,3)");
+
+		speedButton.append("text")
+		.classed("start_text", true)
+		.attr("x", 92)
+		.attr("y", 0)
+		.text("2X")
+		.style("fill", main_col)
+		.style("font-size", "8px")
+		.attr("transform", "translate(-20,3)");
+
+		speedButton.append("text")
+		.classed("start_text", true)
+		.attr("x", 122)
+		.attr("y", 0)
+		.text("4X")
+		.style("fill", main_col)
+		.style("font-size", "8px")
+		.attr("transform", "translate(-20,3)");
+
+		// speed circles
+		// low
+		speedButton.append("circle")
+		.classed("low_button", true)
+		.attr("cx", 34.5)
+		.attr("cy", 0)
+		.attr("r", 5)
+		.style("stroke", white_col)
+		.style("stroke-width", "2px")
+		.style("fill", back_col)
+		.style("fill-opacity", 1)
+		.style("stroke-opacity", 0.8)
+		.on("mousedown", speedDownLow)
+		.on("mouseover", overGeneral)
+		.on("mouseleave", leaveGeneral);
+
+		// medium
+		speedButton.append("circle")
+		.classed("medium_button", true)
+		.attr("cx", 64)
+		.attr("cy", 0)
+		.attr("r", 5)
+		.style("fill", button_over_col)
+		.style("fill-opacity", 1)
+		.style("fill", button_over_col)
+		.style("stroke", moderate_col)
+		
+		.attr("stroke-width", 0.7)
+		.style("stroke-opacity", 1)
+		.on("mousedown", speedDownMedium)
+		.on("mouseover", overGeneral)
+		.on("mouseleave", leaveGeneral);
+
+		// high
+		speedButton.append("circle")
+		.classed("high_button", true)
+		.attr("cx", 94)
+		.attr("cy", 0)
+		.attr("r", 5)
+		.style("stroke", moderate_col)
+		.attr("stroke-width", 0.7)
+		.style("fill", back_col)
+		.style("fill-opacity", 1)
+		.on("mousedown", speedDownHigh)
+		.on("mouseover", overGeneral)
+		.on("mouseleave", leaveGeneral);
+
+
+
+	
+// -------------------------------------- Intial conditions
+		
+		d3.selectAll("line.time_lines")
+		.style("stroke", d => projColorScale(d.death))
+		.style("stroke-width", "0.2px");
+
+// -------------------------------------- dots tooltip
+
+var tooltip = div_main.append("div")
+						.attr("class", "tooltip") 
+						.style("opacity", 0)
+						.style("pointer-events", "none")
+						.style("position","absolute")
+						.style("text-align","center")
+						.style("width","100px")
+						.style("height","145px")
+						.style("background-color", "rgba(1, 12, 22, 0.5)")
+						.style("border-radius", "9px")
+						.style("padding", "4px")
+						.style("line-height", "1")
+						.style("display", "inline");
+						
+		// move
+		var mousemove = function(d) {
+
+		tooltip
+		.transition()		
+		.duration(200)		
+		.style("opacity", 0.9);		tooltip
+		.html("<b>" + d.date+"<br/>"+ d.home_team+" against "+d.away_team+ " <br/> Goals: " + d.home_score+"-"+d.away_score + "</br>"+d.tournament +"</br> Hosted in:"+d.city+"</br></b>")
+		.style("left", (d3.event.pageX  - 0) + "px")		
+		.style("top", (d3.event.pageY - 60) + "px");
+
+		d3.select("div.tooltip b")
+		.style("font-size", "10px")
+		.style("color", white_col)
+
+		d3.select("div.tooltip span")
+		.style("font-size", "5px")
+		.style("color", "grey");
+
+		}
+
+		// leave
+		var mouseleave = function(d) {
+
+		tooltip
+		.transition()		
+		.duration(2000)		
+		.style("opacity", 0);
+
+		}
+
+		// call the tooltip
+		d3.selectAll("circle.contour_circles")
+		.on("mousemove", mousemove)
+		.on("mouseleave", mouseleave);
+// -------------------------------------- country tooltip
+
+		var country_tooltip = div_main.append("div")
+						.attr("class", "country_tooltip") 
+						.style("opacity", 1)
+						.style("pointer-events", "none")
+						.style("position","absolute")
+						.style("text-align","center")
+						.style("width","120px")
+						.style("height","30px")
+						.style("border-radius", "9px")
+						.style("padding", "4px")
+						.style("line-height", "2")
+						.style("display", "inline")
+		
+		// move
+		var country_mousemove = function(d) {
+		country_tooltip
+		.transition()		
+		.duration(300)		
+		.style("opacity", 1);
+
+		country_tooltip
+		.html("<b> " + d.properties.name+ "</b>")
+		.style("left", (d3.event.pageX - 30) + "px")		
+		.style("top", (d3.event.pageY - 30) + "px");
+
+		d3.select("div.country_tooltip b")
+		.style("font-size", "10px")
+		.style("color", white_col)
+		.style("background-color", "rgba(1, 12, 22, 0.5)")
+		.style("padding", "5px");
+
+		d3.select(this)
+		.style("fill-opacity", 0)
+		.style("stroke-opacity", 1)
+		.style("stroke", "red");
+		}
+
+		// leave
+		var country_mouseleave = function(d) {
+
+		country_tooltip
+		.transition()	
+		.delay(500)		
+		.style("opacity", 0);
+
+		d3.select(this)
+		.style("fill", white_col)
+		.style("fill-opacity", 1)
+		.style("stroke-opacity", 1)
+		.style("stroke", border_col);
+		}
+
+		// call the tooltip
+		d3.selectAll("path.country")
+		.on("mousemove", country_mousemove)
+		.on("mouseleave", country_mouseleave);			   
+	}  
+
+		</script>			
+	</body>
+</html>
