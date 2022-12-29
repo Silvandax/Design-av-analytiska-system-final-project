@@ -11,9 +11,6 @@
 	<body>	
 		<script>
 // ------------------------------------ colors
-		var main_col = "#ffffff";
-		var title_col = "#bd1349";
-		var subtitle_col = "#ffffff";
 		var white_col = "#ffffff";
 		var light_col = "#B0D5E1";
 		var moderate_col = "#9CB2B9";
@@ -23,13 +20,13 @@
 		var black_col = "#210612"; 
 		var blue_col = "#4242ff";
 		var button_over_col = "#7892AB";
-// ----------------------------------- settings
+// -----------------------------------
 		// Background
 		d3.select("body")
 			.style("background", back_col) 
 			.attr("height", "700px");  
 		// Margin
-		var margin = { top: 65, right: 50, bottom: 20, left: 50 },
+		var margin = { top: 70, right: 50, bottom: 20, left: 50 },
 			width = 1200 - margin.left - margin.right,
 			height = 740 - margin.top - margin.bottom;
 // -------------------------------------- div for svg
@@ -95,7 +92,6 @@
 	const projection = d3.geoNaturalEarth1()
 					 .scale(240)
 					 .translate([(width/2)-70, (height/2)+10]); 
-	
 	// Path generator 
 	const geoPath = d3.geoPath()
 				  .projection(projection);
@@ -200,11 +196,11 @@
 // -------------------------------------- play button function
 		var over = function(d) {
 				d3.select(this)
-				.style("fill", main_col)
+				.style("fill", moderate_col)
 				};
 		var move = function(d) {
 				d3.select(this)
-				.style("fill", main_col)
+				.style("fill", moderate_col)
 				};
 		var leave = function(d) {
 				d3.select(this)
@@ -251,7 +247,7 @@
 			d3.select(this)
 				.transition()
 				.duration(1000)
-				.style("fill", button_over_col)
+				.style("fill", white_col)
 				.style("stroke", white_col)
 				.style("stroke-width", "2px")
 				.style("stroke-opacity", 0.8);
@@ -268,7 +264,7 @@
 	var speedDownMedium = function(d) {
 			d3.select(this)
 				.transition()
-				.style("fill", button_over_col)
+				.style("fill", white_col)
 				.style("stroke", white_col)
 				.style("stroke-width", "2px")
 				.style("stroke-opacity", 0.8);
@@ -286,7 +282,7 @@
 			d3.select(this)
 				.transition()
 				.duration(1000)
-				.style("fill", button_over_col)
+				.style("fill", white_col)
 				.style("stroke", white_col)
 				.style("stroke-width", "2px")
 				.style("stroke-opacity", 0.8);
@@ -349,7 +345,7 @@
 		.style("font-size", "12px")
 		.attr("transform", "translate(-25,0)");
 		// speed circles
-		// low
+		// 1
 		speedButton.append("circle")
 		.classed("low_button", true)
 		.attr("cx", 40)
@@ -364,7 +360,7 @@
 		.on("mouseover", overGeneral)
 		.on("mouseleave", leaveGeneral);
 
-		// medium
+		// 2
 		speedButton.append("circle")
 		.classed("medium_button", true)
 		.attr("cx", 60)
@@ -380,7 +376,7 @@
 		.on("mouseover", overGeneral)
 		.on("mouseleave", leaveGeneral);
 
-		// high
+		// 4
 		speedButton.append("circle")
 		.classed("high_button", true)
 		.attr("cx", 80)
